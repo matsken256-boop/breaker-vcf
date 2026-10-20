@@ -7,10 +7,26 @@ app.use(express.urlencoded({extended:true}));
 const TARGET=500;
 const ADMIN_PASS="MATSKEN2026";
 const CHANNEL="https://whatsapp.com/channel/0029VbDoFXD8qIzjg285xu2h";
+
+// --- FIXED STORAGE - NOW SAVES! ---
+if (!global._breakerDB) global._breakerDB = [];
 const DB_FILE='/tmp/breaker_db.json';
 
-function getDB(){try{if(fs.existsSync(DB_FILE))return JSON.parse(fs.readFileSync(DB_FILE,'utf8'))}catch(e){}return[]}
-function saveDB(d){try{fs.writeFileSync(DB_FILE,JSON.stringify(d))}catch(e){}}
+function getDB(){
+  try{
+    if(global._breakerDB.length > 0) return global._breakerDB;
+    if(fs.existsSync(DB_FILE)){
+      const data = JSON.parse(fs.readFileSync(DB_FILE,'utf8'));
+      if(data.length > 0){ global._breakerDB = data; return data; }
+    }
+  }catch(e){}
+  return global._breakerDB;
+}
+function saveDB(d){
+  global._breakerDB = d;
+  try{ fs.writeFileSync(DB_FILE, JSON.stringify(d)); }catch(e){}
+}
+// --- END FIX ---
 
 const countries=[
 "+256 Uganda","+254 Kenya","+255 Tanzania","+250 Rwanda","+257 Burundi","+260 Zambia","+263 Zimbabwe","+265 Malawi","+251 Ethiopia","+234 Nigeria","+233 Ghana","+27 South Africa","+20 Egypt","+212 Morocco","+216 Tunisia","+237 Cameroon","+243 DRC","+971 UAE","+966 Saudi Arabia","+974 Qatar","+965 Kuwait","+968 Oman","+973 Bahrain","+1 USA","+44 UK","+1 Canada","+61 Australia","+49 Germany","+33 France","+31 Netherlands","+46 Sweden","+47 Norway","+41 Switzerland","+65 Singapore","+81 Japan","+82 South Korea","+39 Italy","+34 Spain","+351 Portugal","+32 Belgium","+45 Denmark","+64 New Zealand","+90 Turkey","+91 India","+62 Indonesia","+60 Malaysia","+63 Philippines","+66 Thailand","+84 Vietnam","+86 China","+92 Pakistan","+880 Bangladesh"
@@ -77,7 +93,7 @@ app.post('/register',(req,res)=>{
   if(name && number && db.length<TARGET && !db.find(u=>u.number===number)){
     db.push({name,number}); saveDB(db);
   }
-  res.send(`<body style="text-align:center;padding:30px;font-family:Arial;background:#e6e8ff"><div style="max-width:380px;margin:40px auto;background:#fff;border:2px solid #000;border-radius:20px;padding:20px"><h2>✅ Registered!</h2><p><b>${name}</b><br>${number}</p><a href="${CHANNEL}" style="display:block;background:#6366f1;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">💬 OPEN CHANNEL & FOLLOW</a><a href="/" style="display:block;background:#fff;color:#4338ca;border:2px solid #4338ca;padding:12px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">Back Home</a></div><script>setTimeout(()=>{window.location.href="${CHANNEL}";},1500);</script></body>`);
+  res.send(`<body style="text-align:center;padding:30px;font-family:Arial;background:#e6e8ff"><div style="max-width:380px;margin:40px auto;background:#fff;border:2px solid #000;border-radius:20px;padding:20px"><h2>✅ Registered!</h2><p><b>${name}</b><br>${number}<br><br>Total: ${getDB().length}/500</p><a href="${CHANNEL}" style="display:block;background:#6366f1;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">💬 OPEN CHANNEL & FOLLOW</a><a href="/" style="display:block;background:#fff;color:#4338ca;border:2px solid #4338ca;padding:12px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">Back Home</a></div><script>setTimeout(()=>{window.location.href="${CHANNEL}";},1500);</script></body>`);
 });
 
 app.get('/admin',(req,res)=>{
@@ -96,7 +112,7 @@ app.get('/admin',(req,res)=>{
 });
 
 app.get('/vcf',(req,res)=>{
-  if(req.query.pass!==ADMIN_PASS) return res.status(403).send('Admin Only - Forbidden');
+  if(req.query.pass!==ADMIN_PASS) return res.status(403).send('Admin Only');
   const db=getDB(); let vcf=''; db.forEach(c=>{ vcf+=`BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nTEL;TYPE=CELL:${c.number}\nEND:VCARD\n`; });
   res.setHeader('Content-Disposition','attachment; filename=breaker_vcf.vcf'); res.setHeader('Content-Type','text/x-vcard'); res.send(vcf);
 });
