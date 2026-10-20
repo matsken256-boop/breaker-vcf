@@ -27,8 +27,9 @@ app.get('/',(req,res)=>{
   .progress-track{width:100%;height:22px;background:#e0e7ff;border:1.5px solid #6366f1;border-radius:20px;overflow:hidden;margin-top:8px}
   .progress-fill{height:100%;background:repeating-linear-gradient(45deg,#6366f1 0 10px,#818cf8 10px 20px);border-radius:20px;transition:width 0.5s}
   input{width:100%;box-sizing:border-box;padding:13px 12px;border-radius:10px;border:1.5px solid #000;margin-top:6px;font-size:15px}
-  .phone{display:flex;align-items:center;border:1.5px solid #000;border-radius:10px;padding:0 10px;margin-top:6px;background:#fff}
-  .phone input{border:none;margin:0;padding:13px 8px}
+  .phone-row{display:flex;gap:8px;margin-top:6px}
+  .phone-row select{width:42%;padding:13px 6px;border-radius:10px;border:1.5px solid #000;font-weight:700;background:#fff;font-size:13px}
+  .phone-row input{width:58%;margin-top:0}
   .btn{width:100%;padding:14px;border-radius:12px;font-weight:800;border:none;cursor:pointer;margin-top:12px}
   .btn-primary{background:#6366f1;color:#fff}
   .btn-outline{background:#fff;color:#4338ca;border:2px solid #4338ca}
@@ -41,10 +42,63 @@ app.get('/',(req,res)=>{
   <div style="display:flex;justify-content:space-between;font-weight:800"><span>REGISTERED ${cur} / ${TARGET}</span><span>${pct}%</span></div>
   <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
   <div style="margin-top:14px;font-weight:700;font-size:12px">FULL NAME</div>
-  <form method="POST" action="/register">
+  <form method="POST" action="/register" onsubmit="const cc=document.getElementById('cc').value; const num=document.getElementById('num').value; this.number.value=cc+num;">
   <input name="name" placeholder="Enter your full name" required>
   <div style="margin-top:12px;font-weight:700;font-size:12px">WHATSAPP NUMBER</div>
-  <div class="phone"><span>🇺🇬 +256</span><input name="number" type="tel" placeholder="770 000000" required></div>
+  <div class="phone-row">
+  <select id="cc">
+    <option value="+256">🇺🇬 +256 UG</option>
+    <option value="+254">🇰🇪 +254 KE</option>
+    <option value="+255">🇹🇿 +255 TZ</option>
+    <option value="+250">🇷🇼 +250 RW</option>
+    <option value="+257">🇧🇮 +257 BI</option>
+    <option value="+260">🇿🇲 +260 ZM</option>
+    <option value="+263">🇿🇼 +263 ZW</option>
+    <option value="+265">🇲🇼 +265 MW</option>
+    <option value="+251">🇪🇹 +251 ET</option>
+    <option value="+234">🇳🇬 +234 NG</option>
+    <option value="+233">🇬🇭 +233 GH</option>
+    <option value="+27">🇿🇦 +27 ZA</option>
+    <option value="+20">🇪🇬 +20 EG</option>
+    <option value="+212">🇲🇦 +212 MA</option>
+    <option value="+216">🇹🇳 +216 TN</option>
+    <option value="+237">🇨🇲 +237 CM</option>
+    <option value="+243">🇨🇩 +243 CD</option>
+    <option value="+1">🇺🇸 +1 US</option>
+    <option value="+44">🇬🇧 +44 UK</option>
+    <option value="+91">🇮🇳 +91 IN</option>
+    <option value="+971">🇦🇪 +971 AE</option>
+    <option value="+966">🇸🇦 +966 SA</option>
+    <option value="+90">🇹🇷 +90 TR</option>
+    <option value="+49">🇩🇪 +49 DE</option>
+    <option value="+33">🇫🇷 +33 FR</option>
+    <option value="+39">🇮🇹 +39 IT</option>
+    <option value="+34">🇪🇸 +34 ES</option>
+    <option value="+351">🇵🇹 +351 PT</option>
+    <option value="+31">🇳🇱 +31 NL</option>
+    <option value="+32">🇧🇪 +32 BE</option>
+    <option value="+41">🇨🇭 +41 CH</option>
+    <option value="+46">🇸🇪 +46 SE</option>
+    <option value="+47">🇳🇴 +47 NO</option>
+    <option value="+45">🇩🇰 +45 DK</option>
+    <option value="+61">🇦🇺 +61 AU</option>
+    <option value="+64">🇳🇿 +64 NZ</option>
+    <option value="+81">🇯🇵 +81 JP</option>
+    <option value="+82">🇰🇷 +82 KR</option>
+    <option value="+86">🇨🇳 +86 CN</option>
+    <option value="+60">🇲🇾 +60 MY</option>
+    <option value="+65">🇸🇬 +65 SG</option>
+    <option value="+66">🇹🇭 +66 TH</option>
+    <option value="+84">🇻🇳 +84 VN</option>
+    <option value="+62">🇮🇩 +62 ID</option>
+    <option value="+63">🇵🇭 +63 PH</option>
+    <option value="+92">🇵🇰 +92 PK</option>
+    <option value="+880">🇧🇩 +880 BD</option>
+    <option value="+55">🇧🇷 +55 BR</option>
+  </select>
+  <input id="num" type="tel" placeholder="770 000000" required>
+  </div>
+  <input type="hidden" name="number">
   <button class="btn btn-primary" type="submit">Register</button>
   </form>
   <button class="btn btn-outline" onclick="navigator.clipboard.writeText(window.location.href);alert('Link copied!')">📋 Copy link</button>
