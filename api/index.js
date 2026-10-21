@@ -1,120 +1,196 @@
 const express = require('express');
-const fs = require('fs');
 const app = express();
 app.use(express.json());
-app.use(express.urlencoded({extended:true}));
+app.use(express.urlencoded({ extended: true }));
+const { kv } = require('@vercel/kv');
 
-const TARGET=500;
-const ADMIN_PASS="MATSKEN2026";
-const CHANNEL="https://whatsapp.com/channel/0029VbDoFXD8qIzjg285xu2h";
+const TARGET = 500;
+const ADMIN_PASS = "MATSKEN2026";
+const CHANNEL = "https://whatsapp.com/channel/0029VbDoFXD8qIzjg285xu2h";
+const KV_KEY = "breaker_vcf_final_db";
 
-// --- FIXED STORAGE - NOW SAVES! ---
-if (!global._breakerDB) global._breakerDB = [];
-const DB_FILE='/tmp/breaker_db.json';
-
-function getDB(){
-  try{
-    if(global._breakerDB.length > 0) return global._breakerDB;
-    if(fs.existsSync(DB_FILE)){
-      const data = JSON.parse(fs.readFileSync(DB_FILE,'utf8'));
-      if(data.length > 0){ global._breakerDB = data; return data; }
-    }
-  }catch(e){}
-  return global._breakerDB;
+// ===== PERSISTENT STORAGE - NEVER WIPES =====
+async function getDb() {
+  try {
+    const data = await kv.get(KV_KEY);
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    return [];
+  }
 }
-function saveDB(d){
-  global._breakerDB = d;
-  try{ fs.writeFileSync(DB_FILE, JSON.stringify(d)); }catch(e){}
+async function saveDb(db) {
+  try {
+    await kv.set(KV_KEY, db);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
-// --- END FIX ---
 
-const countries=[
-"+256 Uganda","+254 Kenya","+255 Tanzania","+250 Rwanda","+257 Burundi","+260 Zambia","+263 Zimbabwe","+265 Malawi","+251 Ethiopia","+234 Nigeria","+233 Ghana","+27 South Africa","+20 Egypt","+212 Morocco","+216 Tunisia","+237 Cameroon","+243 DRC","+971 UAE","+966 Saudi Arabia","+974 Qatar","+965 Kuwait","+968 Oman","+973 Bahrain","+1 USA","+44 UK","+1 Canada","+61 Australia","+49 Germany","+33 France","+31 Netherlands","+46 Sweden","+47 Norway","+41 Switzerland","+65 Singapore","+81 Japan","+82 South Korea","+39 Italy","+34 Spain","+351 Portugal","+32 Belgium","+45 Denmark","+64 New Zealand","+90 Turkey","+91 India","+62 Indonesia","+60 Malaysia","+63 Philippines","+66 Thailand","+84 Vietnam","+86 China","+92 Pakistan","+880 Bangladesh"
+// ===== ALL COUNTRY CODES - GLOBAL =====
+const COUNTRIES = [
+  { code: "93", flag: "🇦🇫", name: "Afghanistan" }, { code: "355", flag: "🇦🇱", name: "Albania" },
+  { code: "213", flag: "🇩🇿", name: "Algeria" }, { code: "244", flag: "🇦🇴", name: "Angola" },
+  { code: "54", flag: "🇦🇷", name: "Argentina" }, { code: "61", flag: "🇦🇺", name: "Australia" },
+  { code: "43", flag: "🇦🇹", name: "Austria" }, { code: "973", flag: "🇧🇭", name: "Bahrain" },
+  { code: "880", flag: "🇧🇩", name: "Bangladesh" }, { code: "32", flag: "🇧🇪", name: "Belgium" },
+  { code: "229", flag: "🇧🇯", name: "Benin" }, { code: "55", flag: "🇧🇷", name: "Brazil" },
+  { code: "226", flag: "🇧🇫", name: "Burkina Faso" }, { code: "257", flag: "🇧🇮", name: "Burundi" },
+  { code: "855", flag: "🇰🇭", name: "Cambodia" }, { code: "237", flag: "🇨🇲", name: "Cameroon" },
+  { code: "1", flag: "🇨🇦", name: "Canada" }, { code: "236", flag: "🇨🇫", name: "Central Africa" },
+  { code: "56", flag: "🇨🇱", name: "Chile" }, { code: "86", flag: "🇨🇳", name: "China" },
+  { code: "57", flag: "🇨🇴", name: "Colombia" }, { code: "242", flag: "🇨🇬", name: "Congo" },
+  { code: "243", flag: "🇨🇩", name: "DR Congo" }, { code: "506", flag: "🇨🇷", name: "Costa Rica" },
+  { code: "385", flag: "🇭🇷", name: "Croatia" }, { code: "53", flag: "🇨🇺", name: "Cuba" },
+  { code: "45", flag: "🇩🇰", name: "Denmark" }, { code: "253", flag: "🇩🇯", name: "Djibouti" },
+  { code: "20", flag: "🇪🇬", name: "Egypt" }, { code: "251", flag: "🇪🇹", name: "Ethiopia" },
+  { code: "358", flag: "🇫🇮", name: "Finland" }, { code: "33", flag: "🇫🇷", name: "France" },
+  { code: "241", flag: "🇬🇦", name: "Gabon" }, { code: "220", flag: "🇬🇲", name: "Gambia" },
+  { code: "49", flag: "🇩🇪", name: "Germany" }, { code: "233", flag: "🇬🇭", name: "Ghana" },
+  { code: "30", flag: "🇬🇷", name: "Greece" }, { code: "224", flag: "🇬🇳", name: "Guinea" },
+  { code: "91", flag: "🇮🇳", name: "India" }, { code: "62", flag: "🇮🇩", name: "Indonesia" },
+  { code: "98", flag: "🇮🇷", name: "Iran" }, { code: "964", flag: "🇮🇶", name: "Iraq" },
+  { code: "353", flag: "🇮🇪", name: "Ireland" }, { code: "972", flag: "🇮🇱", name: "Israel" },
+  { code: "39", flag: "🇮🇹", name: "Italy" }, { code: "81", flag: "🇯🇵", name: "Japan" },
+  { code: "962", flag: "🇯🇴", name: "Jordan" }, { code: "254", flag: "🇰🇪", name: "Kenya" },
+  { code: "965", flag: "🇰🇼", name: "Kuwait" }, { code: "856", flag: "🇱🇦", name: "Laos" },
+  { code: "961", flag: "🇱🇧", name: "Lebanon" }, { code: "266", flag: "🇱🇸", name: "Lesotho" },
+  { code: "231", flag: "🇱🇷", name: "Liberia" }, { code: "218", flag: "🇱🇾", name: "Libya" },
+  { code: "370", flag: "🇱🇹", name: "Lithuania" }, { code: "352", flag: "🇱🇺", name: "Luxembourg" },
+  { code: "261", flag: "🇲🇬", name: "Madagascar" }, { code: "265", flag: "🇲🇼", name: "Malawi" },
+  { code: "60", flag: "🇲🇾", name: "Malaysia" }, { code: "223", flag: "🇲🇱", name: "Mali" },
+  { code: "356", flag: "🇲🇹", name: "Malta" }, { code: "230", flag: "🇲🇺", name: "Mauritius" },
+  { code: "52", flag: "🇲🇽", name: "Mexico" }, { code: "212", flag: "🇲🇦", name: "Morocco" },
+  { code: "258", flag: "🇲🇿", name: "Mozambique" }, { code: "95", flag: "🇲🇲", name: "Myanmar" },
+  { code: "264", flag: "🇳🇦", name: "Namibia" }, { code: "977", flag: "🇳🇵", name: "Nepal" },
+  { code: "31", flag: "🇳🇱", name: "Netherlands" }, { code: "64", flag: "🇳🇿", name: "New Zealand" },
+  { code: "227", flag: "🇳🇪", name: "Niger" }, { code: "234", flag: "🇳🇬", name: "Nigeria" },
+  { code: "47", flag: "🇳🇴", name: "Norway" }, { code: "968", flag: "🇴🇲", name: "Oman" },
+  { code: "92", flag: "🇵🇰", name: "Pakistan" }, { code: "970", flag: "🇵🇸", name: "Palestine" },
+  { code: "507", flag: "🇵🇦", name: "Panama" }, { code: "51", flag: "🇵🇪", name: "Peru" },
+  { code: "63", flag: "🇵🇭", name: "Philippines" }, { code: "48", flag: "🇵🇱", name: "Poland" },
+  { code: "351", flag: "🇵🇹", name: "Portugal" }, { code: "974", flag: "🇶🇦", name: "Qatar" },
+  { code: "40", flag: "🇷🇴", name: "Romania" }, { code: "7", flag: "🇷🇺", name: "Russia" },
+  { code: "250", flag: "🇷🇼", name: "Rwanda" }, { code: "966", flag: "🇸🇦", name: "Saudi Arabia" },
+  { code: "221", flag: "🇸🇳", name: "Senegal" }, { code: "65", flag: "🇸🇬", name: "Singapore" },
+  { code: "27", flag: "🇿🇦", name: "South Africa" }, { code: "82", flag: "🇰🇷", name: "South Korea" },
+  { code: "211", flag: "🇸🇸", name: "South Sudan" }, { code: "34", flag: "🇪🇸", name: "Spain" },
+  { code: "94", flag: "🇱🇰", name: "Sri Lanka" }, { code: "249", flag: "🇸🇩", name: "Sudan" },
+  { code: "46", flag: "🇸🇪", name: "Sweden" }, { code: "41", flag: "🇨🇭", name: "Switzerland" },
+  { code: "963", flag: "🇸🇾", name: "Syria" }, { code: "255", flag: "🇹🇿", name: "Tanzania" },
+  { code: "66", flag: "🇹🇭", name: "Thailand" }, { code: "228", flag: "🇹🇬", name: "Togo" },
+  { code: "216", flag: "🇹🇳", name: "Tunisia" }, { code: "90", flag: "🇹🇷", name: "Turkey" },
+  { code: "256", flag: "🇺🇬", name: "Uganda" }, { code: "380", flag: "🇺🇦", name: "Ukraine" },
+  { code: "971", flag: "🇦🇪", name: "UAE" }, { code: "44", flag: "🇬🇧", name: "UK" },
+  { code: "1", flag: "🇺🇸", name: "USA" }, { code: "598", flag: "🇺🇾", name: "Uruguay" },
+  { code: "998", flag: "🇺🇿", name: "Uzbekistan" }, { code: "58", flag: "🇻🇪", name: "Venezuela" },
+  { code: "84", flag: "🇻🇳", name: "Vietnam" }, { code: "967", flag: "🇾🇪", name: "Yemen" },
+  { code: "260", flag: "🇿🇲", name: "Zambia" }, { code: "263", flag: "🇿🇼", name: "Zimbabwe" }
 ];
 
-app.get('/',(req,res)=>{
-  const db=getDB(); const cur=db.length; const pct=Math.round(cur/TARGET*100); const rem=TARGET-cur;
-  const opts=countries.map(c=>{
-    const p=c.split(' '); const code=p[0]; const name=p.slice(1).join(' ');
-    return `<option value="${code}" ${code==='+256'?'selected':''}>${code} ${name}</option>`;
-  }).join('');
-  res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>BREAKER VCF</title>
+// ===== HOME PAGE =====
+app.get('/', async (req, res) => {
+  const db = await getDb();
+  const cur = db.length;
+  const pct = Math.min(100, Math.round((cur / TARGET) * 100));
+  const rem = TARGET - cur;
+
+  const options = COUNTRIES.map(c => 
+    `<option value="${c.code}" data-name="${c.name}">${c.flag} +${c.code} - ${c.name}</option>`
+  ).join('');
+
+  res.send(`<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>BREAKER VCF</title>
 <style>
-body{margin:0;background:#e6e8ff;font-family:system-ui;color:#1e1b4b}
+body{margin:0;background:#e6e8ff;font-family:system-ui,Arial;color:#1e1b4b}
 .wrap{max-width:420px;margin:auto;padding:14px}
 .top{background:#fff;border-radius:20px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
-.logoB{width:48px;height:48px;background:#6366f1;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:28px}
+.logoB{width:48px;height:48px;background:#6366f1;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:28px;transform:rotate(-8deg)}
 .batch{border:1.5px solid #6366f1;color:#4338ca;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700}
-.title{margin:18px 4px;font-weight:900;font-size:24px;line-height:1.1}.title span{color:#4338ca}
+.title{margin:18px 4px;font-weight:900;font-size:24px}
+.title span{color:#4338ca}
 .card{background:#fff;border:2px solid #000;border-radius:22px;overflow:hidden}
 .inner{padding:16px}
-.progress-track{width:100%;height:14px;background:#e0e7ff;border:1.5px solid #6366f1;border-radius:20px;overflow:hidden;margin-top:8px}
-.progress-fill{height:100%;background:#6366f1;border-radius:20px}
-.phone-row{display:flex;gap:6px;margin-top:6px}
-.phone-row select{width:65%;padding:13px;border-radius:10px;border:1.5px solid #000;font-weight:700;background:#f8f8f8}
-.phone-row input{width:35%;padding:13px;border-radius:10px;border:1.5px solid #000}
-input{width:100%;box-sizing:border-box;padding:13px;border-radius:10px;border:1.5px solid #000;margin-top:6px}
+.progress-track{width:100%;height:22px;background:#e0e7ff;border:1.5px solid #6366f1;border-radius:20px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;background:repeating-linear-gradient(45deg,#6366f1 0 10px,#818cf8 10px 20px)}
+.phone-row{display:flex;gap:8px;margin-top:6px}
+.phone-row select{width:42%;background:#fff;padding:13px;border-radius:10px;border:1.5px solid #000;font-size:14px}
+.phone-row input{width:58%;padding:13px;border-radius:10px;border:1.5px solid #000;font-size:15px}
+input.full{width:100%;padding:13px;border-radius:10px;border:1.5px solid #000;margin-top:6px;font-size:15px}
 .btn{width:100%;padding:14px;border-radius:12px;font-weight:800;border:none;cursor:pointer;margin-top:12px}
-.btn-primary{background:#6366f1;color:#fff;font-size:16px}
+.btn-primary{background:#6366f1;color:#fff}
 .btn-outline{background:#fff;color:#4338ca;border:2px solid #4338ca}
-.btn-light{background:#eef0ff;color:#4338ca;border:1.5px solid #6366f1;padding:12px;font-size:14px;font-weight:800}
-.bottom{padding:12px;background:#eef0ff}
+.btn-light{background:#c7c8ff;color:#4338ca;border:1.5px solid #4338ca;padding:12px;font-size:14px}
+.bottom{display:flex;gap:10px;background:#eef0ff;padding:12px}
 </style></head><body><div class="wrap">
-<div class="top"><div style="display:flex;align-items:center;gap:10px"><div class="logoB">B</div><div style="font-weight:900;line-height:0.9">BREAKER<br>VCF</div></div><div class="batch">BATCH 1</div></div>
-<div class="title">END OF YEAR FREE '<br><span>VCF VIEWERS GAIN</span></div>
+<div class="top"><div style="display:flex;align-items:center;gap:10px"><div class="logoB">B</div><div style="font-weight:900;line-height:0.9">BREAKER<br>VCF</div></div><div class="batch">📄 BATCH 1 - GLOBAL</div></div>
+<div class="title">END OF YEAR FREE<br><span>VCF VIEWERS GAIN</span></div>
 <div class="card"><div class="inner">
-<div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px"><span>REGISTERED ${cur} / ${TARGET}</span><span>${pct}%</span></div>
+<div style="display:flex;justify-content:space-between;font-weight:800"><span>REGISTERED ${cur} / ${TARGET}</span><span>${pct}%</span></div>
 <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-<div style="margin-top:16px;font-weight:700;font-size:12px">FULL NAME</div>
-<form id="regForm" method="POST" action="/register">
-<input name="name" placeholder="Enter your full name" required>
-<div style="margin-top:12px;font-weight:700;font-size:12px">WHATSAPP NUMBER</div>
-<div class="phone-row"><select id="cc">${opts}</select><input id="num" type="tel" placeholder="769724124" required></div>
-<input type="hidden" name="number" id="fullNumber">
-<button class="btn btn-primary" type="submit">Register</button>
-</form>
-<button class="btn btn-outline" onclick="navigator.clipboard.writeText(location.href);alert('Link copied!')">Copy link - ${rem} left</button>
+<div style="margin-top:14px;font-weight:700;font-size:12px">FULL NAME</div>
+<form method="POST" action="/register">
+<input class="full" name="name" placeholder="Enter your full name" required minlength="2">
+<div style="margin-top:12px;font-weight:700;font-size:12px">WHATSAPP NUMBER - SELECT COUNTRY</div>
+<div class="phone-row">
+<select name="ccode" id="ccode" required>
+<option value="256" selected>🇺🇬 +256 Uganda (Default)</option>
+${options}
+</select>
+<input name="number" type="tel" placeholder="769724124" required>
 </div>
-<div class="bottom"><a href="${CHANNEL}" style="text-decoration:none"><button class="btn btn-light" style="width:100%">💬 Follow Channel</button></a></div>
+<button class="btn btn-primary" type="submit">Register - Global VCF</button>
+</form>
+<button class="btn btn-outline" onclick="navigator.clipboard.writeText(window.location.href)">📋 Copy link - ${rem} left</button>
+</div><div class="bottom">
+<a href="${CHANNEL}" style="flex:1"><button class="btn btn-light" style="width:100%">💬 Channel</button></a>
+<a href="/admin" style="flex:1"><button class="btn btn-light" style="width:100%">⬇️ Get VCF</button></a>
 </div></div>
-<script>
-document.getElementById('regForm').addEventListener('submit',function(){
-  const cc=document.getElementById('cc').value;
-  let num=document.getElementById('num').value; num=num.replace(/ /g,'');
-  document.getElementById('fullNumber').value=cc+num;
-});
-</script></body></html>`);
+<div style="text-align:center;margin:16px;font-size:11px;color:#64748b">Powered by MATSKEN TECH | Global Country Codes | ${cur} registered</div>
+</div></body></html>`);
 });
 
-app.post('/register',(req,res)=>{
-  let db=getDB(); 
-  const name=req.body.name;
-  let number=(req.body.number||'').replace(/ /g,'');
-  if(name && number && db.length<TARGET && !db.find(u=>u.number===number)){
-    db.push({name,number}); saveDB(db);
+// ===== REGISTER =====
+app.post('/register', async (req, res) => {
+  try {
+    let { name, number, ccode } = req.body;
+    if (!name || !number || !ccode) return res.status(400).send("Missing fields");
+    ccode = String(ccode).replace(/\D/g, '');
+    number = String(number).replace(/\D/g, '');
+    if (number.length < 6) return res.status(400).send("Invalid number");
+    const full = `+${ccode}${number}`;
+    let db = await getDb();
+    if (db.length >= TARGET) return res.send(`<h2>Batch Full ${TARGET}/${TARGET}</h2>`);
+    if (db.find(u => u.full === full)) {
+      return res.send(`<html><head><meta http-equiv="refresh" content="1;url=${CHANNEL}"></head><body style="text-align:center;padding:40px;font-family:Arial"><h2>Already Registered ✅</h2><p>${full}</p></body></html>`);
+    }
+    db.push({ name: name.trim(), number, ccode, full, date: new Date().toISOString() });
+    await saveDb(db);
+    res.send(`<html><head><meta http-equiv="refresh" content="1;url=${CHANNEL}"><style>body{background:#e6e8ff;font-family:Arial;text-align:center;padding:60px}</style></head><body><h2>✅ Registered ${db.length}/${TARGET}!</h2><p>${full}</p><p>Redirecting to Channel...</p></body></html>`);
+  } catch (e) {
+    res.status(500).send("Server error, retry");
   }
-  res.send(`<body style="text-align:center;padding:30px;font-family:Arial;background:#e6e8ff"><div style="max-width:380px;margin:40px auto;background:#fff;border:2px solid #000;border-radius:20px;padding:20px"><h2>✅ Registered!</h2><p><b>${name}</b><br>${number}<br><br>Total: ${getDB().length}/500</p><a href="${CHANNEL}" style="display:block;background:#6366f1;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">💬 OPEN CHANNEL & FOLLOW</a><a href="/" style="display:block;background:#fff;color:#4338ca;border:2px solid #4338ca;padding:12px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">Back Home</a></div><script>setTimeout(()=>{window.location.href="${CHANNEL}";},1500);</script></body>`);
 });
 
-app.get('/admin',(req,res)=>{
-  if(req.query.pass!==ADMIN_PASS) return res.send(`<body style="text-align:center;padding:40px;font-family:Arial;background:#e6e8ff"><h2>🔒 MATSKEN ADMIN</h2><form><input name="pass" type="password" placeholder="Enter Password" style="padding:12px;border-radius:10px;border:1.5px solid #000;width:80%"><br><br><button style="padding:12px 30px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-weight:800">LOGIN</button></form></body>`);
-  let db=getDB();
-  if(req.query.delete!==undefined){ db.splice(parseInt(req.query.delete),1); saveDB(db); return res.redirect('/admin?pass='+ADMIN_PASS); }
-  if(req.query.clear==='1'){ saveDB([]); return res.redirect('/admin?pass='+ADMIN_PASS); }
-  if(req.query.dedup==='1'){ const s=new Set(); const f=[]; db.forEach(u=>{ if(!s.has(u.number)){ s.add(u.number); f.push(u);} }); saveDB(f); return res.redirect('/admin?pass='+ADMIN_PASS); }
-  const counts={}; db.forEach(u=>{ counts[u.number]=(counts[u.number]||0)+1; });
-  const dupLen=Object.keys(counts).filter(k=>counts[k]>1).length;
-  let rows=db.map((u,i)=>{
-    const dup=counts[u.number]>1?'style="background:#fee2e2"':'';
-    return `<tr ${dup}><td>${i+1}</td><td>${u.name}</td><td>${u.number}</td><td>${counts[u.number]>1?'<b style=color:red>DUP</b>':''}</td><td><a href="/admin?pass=${ADMIN_PASS}&delete=${i}" onclick="return confirm('Delete ${u.name}?')"><button style="background:red;color:#fff;border:none;padding:6px 10px;border-radius:6px">Delete</button></a></td></tr>`;
-  }).join('');
-  res.send(`<body style="font-family:Arial;padding:12px;background:#f8fafc"><h2>Admin ${db.length}/${TARGET} | Dups:${dupLen}</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><a href="/vcf?pass=${ADMIN_PASS}"><button style="background:#6366f1;color:#fff;padding:12px 20px;border:none;border-radius:10px;font-weight:800">📥 DOWNLOAD VCF</button></a><a href="/admin?pass=${ADMIN_PASS}&dedup=1"><button style="background:orange;color:#fff;padding:12px;border:none;border-radius:10px;font-weight:700">🧹 Remove Duplicates (${dupLen})</button></a><a href="/admin?pass=${ADMIN_PASS}&clear=1" onclick="return confirm('Clear all ${db.length}?')"><button style="background:#000;color:#fff;padding:12px;border-radius:10px">Clear All</button></a></div><input id="s" placeholder="Search name or number..." onkeyup="filter()" style="width:100%;padding:12px;margin-top:12px;border-radius:10px;border:1.5px solid #000"><table border=1 cellpadding=8 id="t" style="width:100%;margin-top:10px;border-collapse:collapse;background:#fff"><tr><th>#</th><th>Name</th><th>Number</th><th></th><th>Action</th></tr>${rows}</table><script>function filter(){const q=document.getElementById('s').value.toLowerCase();document.querySelectorAll('#t tr').forEach((tr,i)=>{if(i==0)return;tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none';});}</script></body>`);
+// ===== ADMIN & VCF =====
+app.get('/admin', async (req, res) => {
+  if (req.query.pass !== ADMIN_PASS) {
+    return res.send(`<body style="background:#e6e8ff;font-family:Arial;padding:30px;text-align:center"><h2>🔒 MATSKEN ADMIN</h2><form><input name="pass" type="password" placeholder="MATSKEN2026" style="padding:12px;width:80%;border-radius:10px;border:1.5px solid #000"><br><br><button style="padding:12px 30px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-weight:800">LOGIN</button></form></body>`);
+  }
+  const db = await getDb();
+  if (req.query.clear === '1') { await saveDb([]); return res.redirect(`/admin?pass=${ADMIN_PASS}`); }
+  let rows = db.map((u, i) => `<tr><td>${i+1}</td><td>${u.name}</td><td>${u.full}</td></tr>`).join('');
+  res.send(`<body style="font-family:Arial;padding:12px;background:#fff"><h2>ADMIN - ${db.length}/${TARGET} Global</h2><a href="/vcf?pass=${ADMIN_PASS}"><button style="background:#6366f1;color:#fff;padding:12px 20px;border:none;border-radius:10px;font-weight:800">📥 DOWNLOAD VCF (${db.length})</button></a> <a href="/admin?pass=${ADMIN_PASS}&clear=1"><button style="background:#000;color:#fff;padding:12px;border:none;border-radius:10px">Clear</button></a><table border="1" cellpadding="8" style="width:100%;margin-top:15px;border-collapse:collapse"><tr><th>#</th><th>Name</th><th>Full Number</th></tr>${rows}</table></body>`);
 });
 
-app.get('/vcf',(req,res)=>{
-  if(req.query.pass!==ADMIN_PASS) return res.status(403).send('Admin Only');
-  const db=getDB(); let vcf=''; db.forEach(c=>{ vcf+=`BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nTEL;TYPE=CELL:${c.number}\nEND:VCARD\n`; });
-  res.setHeader('Content-Disposition','attachment; filename=breaker_vcf.vcf'); res.setHeader('Content-Type','text/x-vcard'); res.send(vcf);
+app.get('/vcf', async (req, res) => {
+  if (req.query.pass !== ADMIN_PASS) return res.status(403).send('403 Admin Only');
+  const db = await getDb();
+  let vcf = '';
+  db.forEach(c => { vcf += `BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nTEL;TYPE=CELL:${c.full}\nEND:VCARD\n`; });
+  res.setHeader('Content-Disposition', `attachment; filename=breaker_global_${db.length}.vcf`);
+  res.setHeader('Content-Type', 'text/x-vcard');
+  res.send(vcf);
 });
 
-module.exports=app;
+module.exports = app;
