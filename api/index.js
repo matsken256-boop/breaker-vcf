@@ -8,21 +8,11 @@ const TARGET=500;
 const ADMIN_PASS="MATSKEN2026";
 const CHANNEL="https://whatsapp.com/channel/0029VbDoFXD8qIzjg285xu2h";
 
-// --- FIXED STORAGE WITH KV - NOW SAVES FOREVER ---
 if (!global._breakerDB) global._breakerDB = [];
 const DB_FILE='/tmp/breaker_db.json';
-let kvClient = null;
-try { const { kv } = require('@vercel/kv'); kvClient = kv; } catch(e) {}
 
-async function getDB(){
+function getDB(){
   try{
-    if(kvClient){
-      const kvData = await kvClient.get('breaker_db');
-      if(Array.isArray(kvData) && kvData.length > 0){
-        global._breakerDB = kvData;
-        return kvData;
-      }
-    }
     if(global._breakerDB.length > 0) return global._breakerDB;
     if(fs.existsSync(DB_FILE)){
       const data = JSON.parse(fs.readFileSync(DB_FILE,'utf8'));
@@ -31,19 +21,17 @@ async function getDB(){
   }catch(e){}
   return global._breakerDB;
 }
-async function saveDB(d){
+function saveDB(d){
   global._breakerDB = d;
   try{ fs.writeFileSync(DB_FILE, JSON.stringify(d)); }catch(e){}
-  if(kvClient){ try{ await kvClient.set('breaker_db', d); }catch(e){} }
 }
-// --- END FIX ---
 
 const countries=[
 "+256 Uganda","+254 Kenya","+255 Tanzania","+250 Rwanda","+257 Burundi","+260 Zambia","+263 Zimbabwe","+265 Malawi","+251 Ethiopia","+234 Nigeria","+233 Ghana","+27 South Africa","+20 Egypt","+212 Morocco","+216 Tunisia","+237 Cameroon","+243 DRC","+971 UAE","+966 Saudi Arabia","+974 Qatar","+965 Kuwait","+968 Oman","+973 Bahrain","+1 USA","+44 UK","+1 Canada","+61 Australia","+49 Germany","+33 France","+31 Netherlands","+46 Sweden","+47 Norway","+41 Switzerland","+65 Singapore","+81 Japan","+82 South Korea","+39 Italy","+34 Spain","+351 Portugal","+32 Belgium","+45 Denmark","+64 New Zealand","+90 Turkey","+91 India","+62 Indonesia","+60 Malaysia","+63 Philippines","+66 Thailand","+84 Vietnam","+86 China","+92 Pakistan","+880 Bangladesh"
 ];
 
-app.get('/',async (req,res)=>{
-  const db=await getDB(); const cur=db.length; const pct=Math.round(cur/TARGET*100); const rem=TARGET-cur;
+app.get('/',(req,res)=>{
+  const db=getDB(); const cur=db.length; const pct=Math.round(cur/TARGET*100); const rem=TARGET-cur;
   const opts=countries.map(c=>{
     const p=c.split(' '); const code=p[0]; const name=p.slice(1).join(' ');
     return `<option value="${code}" ${code==='+256'?'selected':''}>${code} ${name}</option>`;
@@ -96,23 +84,22 @@ document.getElementById('regForm').addEventListener('submit',function(){
 </script></body></html>`);
 });
 
-app.post('/register',async (req,res)=>{
-  let db=await getDB(); 
+app.post('/register',(req,res)=>{
+  let db=getDB(); 
   const name=req.body.name;
   let number=(req.body.number||'').replace(/ /g,'');
   if(name && number && db.length<TARGET && !db.find(u=>u.number===number)){
-    db.push({name,number}); await saveDB(db);
+    db.push({name,number}); saveDB(db);
   }
-  const curDb = await getDB();
-  res.send(`<body style="text-align:center;padding:30px;font-family:Arial;background:#e6e8ff"><div style="max-width:380px;margin:40px auto;background:#fff;border:2px solid #000;border-radius:20px;padding:20px"><h2>✅ Registered!</h2><p><b>${name}</b><br>${number}<br><br>Total: ${curDb.length}/500</p><a href="${CHANNEL}" style="display:block;background:#6366f1;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">💬 OPEN CHANNEL & FOLLOW</a><a href="/" style="display:block;background:#fff;color:#4338ca;border:2px solid #4338ca;padding:12px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">Back Home</a></div><script>setTimeout(()=>{window.location.href="${CHANNEL}";},1500);</script></body>`);
+  res.send(`<body style="text-align:center;padding:30px;font-family:Arial;background:#e6e8ff"><div style="max-width:380px;margin:40px auto;background:#fff;border:2px solid #000;border-radius:20px;padding:20px"><h2>✅ Registered!</h2><p><b>${name}</b><br>${number}<br><br>Total: ${getDB().length}/500</p><a href="${CHANNEL}" style="display:block;background:#6366f1;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">💬 OPEN CHANNEL & FOLLOW</a><a href="/" style="display:block;background:#fff;color:#4338ca;border:2px solid #4338ca;padding:12px;border-radius:12px;text-decoration:none;font-weight:800;margin-top:10px">Back Home</a></div><script>setTimeout(()=>{window.location.href="${CHANNEL}";},1500);</script></body>`);
 });
 
-app.get('/admin',async (req,res)=>{
+app.get('/admin',(req,res)=>{
   if(req.query.pass!==ADMIN_PASS) return res.send(`<body style="text-align:center;padding:40px;font-family:Arial;background:#e6e8ff"><h2>🔒 MATSKEN ADMIN</h2><form><input name="pass" type="password" placeholder="Enter Password" style="padding:12px;border-radius:10px;border:1.5px solid #000;width:80%"><br><br><button style="padding:12px 30px;background:#6366f1;color:#fff;border:none;border-radius:10px;font-weight:800">LOGIN</button></form></body>`);
-  let db=await getDB();
-  if(req.query.delete!==undefined){ db.splice(parseInt(req.query.delete),1); await saveDB(db); return res.redirect('/admin?pass='+ADMIN_PASS); }
-  if(req.query.clear==='1'){ await saveDB([]); return res.redirect('/admin?pass='+ADMIN_PASS); }
-  if(req.query.dedup==='1'){ const s=new Set(); const f=[]; db.forEach(u=>{ if(!s.has(u.number)){ s.add(u.number); f.push(u);} }); await saveDB(f); return res.redirect('/admin?pass='+ADMIN_PASS); }
+  let db=getDB();
+  if(req.query.delete!==undefined){ db.splice(parseInt(req.query.delete),1); saveDB(db); return res.redirect('/admin?pass='+ADMIN_PASS); }
+  if(req.query.clear==='1'){ saveDB([]); return res.redirect('/admin?pass='+ADMIN_PASS); }
+  if(req.query.dedup==='1'){ const s=new Set(); const f=[]; db.forEach(u=>{ if(!s.has(u.number)){ s.add(u.number); f.push(u);} }); saveDB(f); return res.redirect('/admin?pass='+ADMIN_PASS); }
   const counts={}; db.forEach(u=>{ counts[u.number]=(counts[u.number]||0)+1; });
   const dupLen=Object.keys(counts).filter(k=>counts[k]>1).length;
   let rows=db.map((u,i)=>{
@@ -122,8 +109,13 @@ app.get('/admin',async (req,res)=>{
   res.send(`<body style="font-family:Arial;padding:12px;background:#f8fafc"><h2>Admin ${db.length}/${TARGET} | Dups:${dupLen}</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><a href="/vcf?pass=${ADMIN_PASS}"><button style="background:#6366f1;color:#fff;padding:12px 20px;border:none;border-radius:10px;font-weight:800">📥 DOWNLOAD VCF</button></a><a href="/admin?pass=${ADMIN_PASS}&dedup=1"><button style="background:orange;color:#fff;padding:12px;border:none;border-radius:10px;font-weight:700">🧹 Remove Duplicates (${dupLen})</button></a><a href="/admin?pass=${ADMIN_PASS}&clear=1" onclick="return confirm('Clear all ${db.length}?')"><button style="background:#000;color:#fff;padding:12px;border-radius:10px">Clear All</button></a></div><input id="s" placeholder="Search name or number..." onkeyup="filter()" style="width:100%;padding:12px;margin-top:12px;border-radius:10px;border:1.5px solid #000"><table border=1 cellpadding=8 id="t" style="width:100%;margin-top:10px;border-collapse:collapse;background:#fff"><tr><th>#</th><th>Name</th><th>Number</th><th></th><th>Action</th></tr>${rows}</table><script>function filter(){const q=document.getElementById('s').value.toLowerCase();document.querySelectorAll('#t tr').forEach((tr,i)=>{if(i==0)return;tr.style.display=tr.innerText.toLowerCase().includes(q)?'':'none';});}</script></body>`);
 });
 
-app.get('/vcf',async (req,res)=>{
+app.get('/vcf',(req,res)=>{
   if(req.query.pass!==ADMIN_PASS) return res.status(403).send('Admin Only');
+  const db=getDB(); let vcf=''; db.forEach(c=>{ vcf+=`BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nTEL;TYPE=CELL:${c.number}\nEND:VCARD\n`; });
+  res.setHeader('Content-Disposition','attachment; filename=breaker_vcf.vcf'); res.setHeader('Content-Type','text/x-vcard'); res.send(vcf);
+});
+
+module.exports=app;('Admin Only');
   const db=await getDB(); let vcf=''; db.forEach(c=>{ vcf+=`BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nTEL;TYPE=CELL:${c.number}\nEND:VCARD\n`; });
   res.setHeader('Content-Disposition','attachment; filename=breaker_vcf.vcf'); res.setHeader('Content-Type','text/x-vcard'); res.send(vcf);
 });
