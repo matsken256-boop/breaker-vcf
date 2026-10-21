@@ -8,6 +8,7 @@ const TARGET=500;
 const ADMIN_PASS="MATSKEN2026";
 const CHANNEL="https://whatsapp.com/channel/0029VbDoFXD8qIzjg285xu2h";
 
+// --- FIXED STORAGE - NOW SAVES! ---
 if (!global._breakerDB) global._breakerDB = [];
 const DB_FILE='/tmp/breaker_db.json';
 
@@ -25,6 +26,7 @@ function saveDB(d){
   global._breakerDB = d;
   try{ fs.writeFileSync(DB_FILE, JSON.stringify(d)); }catch(e){}
 }
+// --- END FIX ---
 
 const countries=[
 "+256 Uganda","+254 Kenya","+255 Tanzania","+250 Rwanda","+257 Burundi","+260 Zambia","+263 Zimbabwe","+265 Malawi","+251 Ethiopia","+234 Nigeria","+233 Ghana","+27 South Africa","+20 Egypt","+212 Morocco","+216 Tunisia","+237 Cameroon","+243 DRC","+971 UAE","+966 Saudi Arabia","+974 Qatar","+965 Kuwait","+968 Oman","+973 Bahrain","+1 USA","+44 UK","+1 Canada","+61 Australia","+49 Germany","+33 France","+31 Netherlands","+46 Sweden","+47 Norway","+41 Switzerland","+65 Singapore","+81 Japan","+82 South Korea","+39 Italy","+34 Spain","+351 Portugal","+32 Belgium","+45 Denmark","+64 New Zealand","+90 Turkey","+91 India","+62 Indonesia","+60 Malaysia","+63 Philippines","+66 Thailand","+84 Vietnam","+86 China","+92 Pakistan","+880 Bangladesh"
@@ -115,9 +117,7 @@ app.get('/vcf',(req,res)=>{
   res.setHeader('Content-Disposition','attachment; filename=breaker_vcf.vcf'); res.setHeader('Content-Type','text/x-vcard'); res.send(vcf);
 });
 
-module.exports=app;('Admin Only');
-  const db=await getDB(); let vcf=''; db.forEach(c=>{ vcf+=`BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nTEL;TYPE=CELL:${c.number}\nEND:VCARD\n`; });
-  res.setHeader('Content-Disposition','attachment; filename=breaker_vcf.vcf'); res.setHeader('Content-Type','text/x-vcard'); res.send(vcf);
+module.exports=app;er_vcf.vcf'); res.setHeader('Content-Type','text/x-vcard'); res.send(vcf);
 });
 
 module.exports=app;
