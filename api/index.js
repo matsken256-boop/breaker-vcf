@@ -117,7 +117,4 @@ app.get('/vcf',(req,res)=>{
   res.setHeader('Content-Disposition','attachment; filename=breaker_vcf.vcf'); res.setHeader('Content-Type','text/x-vcard'); res.send(vcf);
 });
 
-module.exports=app;er_vcf.vcf'); res.setHeader('Content-Type','text/x-vcard'); res.send(vcf);
-});
-
 module.exports=app;
